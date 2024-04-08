@@ -101,7 +101,9 @@ type Schema struct {
 	Deprecated  bool
 
 	// user defined extensions
-	Extensions map[string]ExtSchema
+	Extensions          map[string]ExtSchema
+	XPatchMergeKeys     []string
+	XPatchMergeStrategy string
 }
 
 func (s *Schema) String() string {
@@ -304,7 +306,7 @@ func (s *Schema) validate(scope []schemaRef, vscope int, spath string, v interfa
 	}
 
 	if s.format != nil && !s.format(v) {
-		var val = v
+		val := v
 		if v, ok := v.(string); ok {
 			val = quote(v)
 		}
@@ -617,7 +619,7 @@ func (s *Schema) validate(scope []schemaRef, vscope int, spath string, v interfa
 	validateRef := func(sch *Schema, refPath string) error {
 		if sch != nil {
 			if err := validateInplace(sch, refPath); err != nil {
-				var url = sch.Location
+				url := sch.Location
 				if s.url() == sch.url() {
 					url = sch.loc()
 				}

@@ -169,7 +169,6 @@ func (c *Compiler) loadURL(url string) (io.ReadCloser, error) {
 		loadURL = c.LoadURL
 	}
 	return loadURL(url)
-
 }
 
 func (c *Compiler) findResource(url string) (*resource, error) {
@@ -339,7 +338,7 @@ func (c *Compiler) compileMap(r *resource, stack []schemaRef, sref schemaRef, re
 	}
 	stack = append(stack, sref)
 
-	var s = res.schema
+	s := res.schema
 	var err error
 
 	if r == res { // root schema
@@ -780,6 +779,14 @@ func (c *Compiler) compileMap(r *resource, stack []schemaRef, sref schemaRef, re
 			}
 			s.Extensions[name] = es
 		}
+	}
+
+	// strategy merge
+	if mergeKey, ok := m["x-patch-merge-keys"]; ok {
+		s.XPatchMergeKeys = mergeKey.([]string)
+	}
+	if mergeStrategy, ok := m["x-patch-strategy"]; ok {
+		s.XPatchMergeStrategy = mergeStrategy.(string)
 	}
 
 	return nil
