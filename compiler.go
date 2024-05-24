@@ -783,7 +783,7 @@ func (c *Compiler) compileMap(r *resource, stack []schemaRef, sref schemaRef, re
 
 	// strategy merge
 	if mergeKey, ok := m["x-patch-merge-keys"]; ok {
-		s.XPatchMergeKeys = mergeKey.([]string)
+		s.XPatchMergeKeys = toStrings(mergeKey.([]interface{}))
 	}
 	if mergeStrategy, ok := m["x-patch-strategy"]; ok {
 		s.XPatchMergeStrategy = mergeStrategy.(string)
