@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
-
-	"code.byted.org/gopkg/logs/v2/log"
 )
 
 const (
@@ -67,7 +65,7 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 	}
 
 	sref := schemaRef{spath, s, false}
-	log.V2.Debug().Str("source:").Obj(source).Str("target:").Obj(target).Emit()
+	// log.V2.Debug().Str("source:").Obj(source).Str("target:").Obj(target).Emit()
 	if err := checkLoop(scope[len(scope)-vscope:], sref); err != nil {
 		panic(err)
 	}
@@ -175,6 +173,21 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 		errors = append(errors, validationError("format", "%v is not valid %s", val, quote(s.Format)))
 	}
 
+	// 删除字段
+	switch targetType := target.(type) {
+	case map[string]any:
+		for k, v := range targetType {
+			if v == nil {
+				// log.V2.Debug().Str("remove: ", k, " from target").Emit()
+				delete(targetType, k)
+				if sourceType, ok := source.(map[string]any); ok {
+					// log.V2.Debug().Str("remove: ", k, " from source").Emit()
+					delete(sourceType, k)
+				}
+			}
+		}
+	}
+
 	switch sourceType := source.(type) {
 	case map[string]any:
 		var targetType map[string]any
@@ -207,9 +220,9 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 		}
 
 		for pname, sch := range s.Properties {
-			log.V2.Debug().Str("pname: ", pname, ", sch:").Obj(sch).Emit()
+			// log.V2.Debug().Str("pname: ", pname, ", sch:").Obj(sch).Emit()
 			if sourceVal, ok := sourceType[pname]; ok {
-				log.V2.Debug().Str("sourceVal:").Obj(sourceVal).Emit()
+				// log.V2.Debug().Str("sourceVal:").Obj(sourceVal).Emit()
 				delete(result.unevalProps, pname)
 				// if targetVal, ok := targetType[pname]; ok {
 				// 	log.V2.Debug().Str("targetVal:").Obj(targetVal).Emit()
@@ -219,14 +232,20 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 				// 	}
 				// }
 				targetVal := targetType[pname]
-				log.V2.Debug().Str("sourceVal:").Obj(targetVal).Emit()
+				// log.V2.Debug().Str("sourceVal:").Obj(targetVal).Emit()
 				res, err := validate(sch, "properties/"+escape(pname), sourceVal, targetVal, escape(pname))
 				if err != nil {
 					errors = append(errors, err)
 				} else {
 					sourceType[pname] = res
 				}
+				delete(targetType, pname)
 			}
+		}
+		// 不在必需字段中的其他字段需要merge到source中
+		for k, v := range targetType {
+			// log.V2.Debug().Str("key: ", k, ", value:").Obj(v).Emit()
+			sourceType[k] = v
 		}
 
 		if s.PropertyNames != nil {
@@ -305,7 +324,7 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 		}
 
 	case []any:
-		log.V2.Debug().Str("array found:").Obj(s).Str("source:").Obj(sourceType).Str("target:").Obj(target).Emit()
+		// log.V2.Debug().Str("array found:").Obj(s).Str("source:").Obj(sourceType).Str("target:").Obj(target).Emit()
 		// source和targe值均为array类型，否则类型不匹配，需要报错
 		var targetMap map[string]any
 		if target != nil {
@@ -327,7 +346,7 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 				} else {
 					uniqueKey = fmt.Sprintf("%s", tmp)
 				}
-				log.V2.Debug().Str("uniqueKey: ", uniqueKey, ", item:").Obj(tmp).Emit()
+				// log.V2.Debug().Str("uniqueKey: ", uniqueKey, ", item:").Obj(tmp).Emit()
 				sourceMap[uniqueKey] = tmp
 			}
 			targetMap = make(map[string]any, len(targetType))
@@ -341,17 +360,17 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 					}
 					// 如果source中不存在唯一键的元素，如果存在相同唯一键的数据，则要继续进行合并
 					if _, ok := sourceMap[uniqueKey]; !ok {
-						log.V2.Debug().Str("source map uniqueKey: ", uniqueKey, ", item:").Obj(itemObj).Emit()
+						// log.V2.Debug().Str("source map uniqueKey: ", uniqueKey, ", item:").Obj(itemObj).Emit()
 						sourceMap[uniqueKey] = itemObj
 					} else {
-						log.V2.Debug().Str("target map uniqueKey: ", uniqueKey, ", item:").Obj(itemObj).Emit()
+						// log.V2.Debug().Str("target map uniqueKey: ", uniqueKey, ", item:").Obj(itemObj).Emit()
 						targetMap[uniqueKey] = itemObj
 					}
 				} else {
 					// 如果元数类型不是map[string]interface{}，则直接合并
 					uniqueKey = fmt.Sprintf("%s", tmp)
 					sourceMap[uniqueKey] = tmp
-					log.V2.Debug().Str("uniqueKey: ", uniqueKey, ", item:").Obj(tmp).Emit()
+					// log.V2.Debug().Str("uniqueKey: ", uniqueKey, ", item:").Obj(tmp).Emit()
 				}
 			}
 			result := make([]any, 0, len(sourceMap))
@@ -439,6 +458,7 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 
 		// prefixItems + items
 		for i, item := range sourceType {
+			// log.V2.Debug().Str("i:").Int(i).Str("item:").Obj(item).Emit()
 			if i < len(s.PrefixItems) {
 				delete(result.unevalItems, i)
 				if _, err := validate(s.PrefixItems[i], "prefixItems/"+strconv.Itoa(i), item, target, strconv.Itoa(i)); err != nil {

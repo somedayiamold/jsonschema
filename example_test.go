@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/somedayiamold/jsonschema/v5"
 )
 
 func Example() {
@@ -164,7 +164,7 @@ func Example_userDefinedContent() {
 // we are implementing a "map" protocol which servers schemas from
 // go map variable.
 func Example_userDefinedLoader() {
-	var schemas = map[string]string{
+	schemas := map[string]string{
 		"main.json": `{"$ref":"obj.json"}`,
 		"obj.json":  `{"type":"object"}`,
 	}

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/dlclark/regexp2"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/somedayiamold/jsonschema/v5"
 )
 
 var schema = `{
