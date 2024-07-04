@@ -282,8 +282,10 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 				schema := s.AdditionalProperties.(*Schema)
 				for pname := range result.unevalProps {
 					if pvalue, ok := sourceType[pname]; ok {
-						if _, err := validate(schema, "additionalProperties", pvalue, targetType[pname], escape(pname)); err != nil {
+						if res, err := validate(schema, "additionalProperties", pvalue, targetType[pname], escape(pname)); err != nil {
 							errors = append(errors, err)
+						} else {
+							sourceType[pname] = res
 						}
 					}
 				}
@@ -743,6 +745,7 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 
 	switch len(errors) {
 	case 0:
+		// log.V2.Debug().Str("return source:").Obj(source).Emit()
 		return source, nil
 	case 1:
 		return source, errors[0]

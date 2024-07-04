@@ -182,6 +182,16 @@ func TestSchema_Merge(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "additional properties",
+			args: args{
+				schema: `{"type": "object", "additionalProperties": {"type": "object", "properties": {"age": {"type": "number"}, "name": {"type": "string"}}}}`,
+				source: map[string]any{"test": nil},
+				target: map[string]any{"test": map[string]any{"name": "b", "age": 24}},
+			},
+			wantResult: map[string]any{"test": map[string]any{"name": "b", "age": 24}},
+			wantErr:    false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
