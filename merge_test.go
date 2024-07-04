@@ -16,42 +16,45 @@ func compare(gotResult, wantResult any) error {
 		if !ok {
 			return fmt.Errorf("1 Merge() gotResult = %v, want %v", got, wantResult)
 		}
+		if len(got) != len(want) {
+			return fmt.Errorf("2 Merge() gotResult = %v, want %v", got, want)
+		}
 		for k, v := range got {
 			return compare(v, want[k])
 		}
 	case []any:
 		want, ok := wantResult.([]any)
 		if !ok {
-			return fmt.Errorf("2 Merge() gotResult = %v, want %v", got, wantResult)
+			return fmt.Errorf("3 Merge() gotResult = %v, want %v", got, wantResult)
 		}
 		if len(got) != len(want) {
-			return fmt.Errorf("3 Merge() gotResult = %v, want %v", got, want)
+			return fmt.Errorf("4 Merge() gotResult = %v, want %v", got, want)
 		}
 		for i, g := range got {
 			switch g.(type) {
 			case map[string]any:
 				w, ok := want[i].(map[string]any)
 				if !ok {
-					return fmt.Errorf("4 Merge() gotResult = %v, want %v", g, w)
+					return fmt.Errorf("5 Merge() gotResult = %v, want %v", g, w)
 				}
 				for _, v := range want {
 					if err := compare(g, v); err == nil {
 						return nil
 					}
 				}
-				return fmt.Errorf("5 Merge() gotResult = %v, want %v", got, want)
+				return fmt.Errorf("6 Merge() gotResult = %v, want %v", got, want)
 			default:
 				for _, v := range want {
 					if reflect.DeepEqual(g, v) {
 						return nil
 					}
 				}
-				return fmt.Errorf("6 Merge() gotResult = %v, want %v", got, want)
+				return fmt.Errorf("7 Merge() gotResult = %v, want %v", got, want)
 			}
 		}
 	default:
 		if !reflect.DeepEqual(got, wantResult) {
-			return fmt.Errorf("7 Merge() gotResult = %v, want %v", got, wantResult)
+			return fmt.Errorf("8 Merge() gotResult = %v, want %v", got, wantResult)
 		}
 	}
 	return nil
@@ -186,7 +189,7 @@ func TestSchema_Merge(t *testing.T) {
 			name: "additional properties",
 			args: args{
 				schema: `{"type": "object", "additionalProperties": {"type": "object", "properties": {"age": {"type": "number"}, "name": {"type": "string"}}}}`,
-				source: map[string]any{"test": nil},
+				source: map[string]any{"test": map[string]any{}},
 				target: map[string]any{"test": map[string]any{"name": "b", "age": 24}},
 			},
 			wantResult: map[string]any{"test": map[string]any{"name": "b", "age": 24}},

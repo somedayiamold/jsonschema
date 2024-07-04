@@ -239,13 +239,9 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 				} else {
 					sourceType[pname] = res
 				}
+				// log.V2.Debug().Str("delete ", pname, " from targetType:").Obj(targetType).Str("sourceType:").Obj(sourceType).Emit()
 				delete(targetType, pname)
 			}
-		}
-		// 不在必需字段中的其他字段需要merge到source中
-		for k, v := range targetType {
-			// log.V2.Debug().Str("key: ", k, ", value:").Obj(v).Emit()
-			sourceType[k] = v
 		}
 
 		if s.PropertyNames != nil {
@@ -286,9 +282,11 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 				schema := s.AdditionalProperties.(*Schema)
 				for pname := range result.unevalProps {
 					if pvalue, ok := sourceType[pname]; ok {
+						// log.V2.Debug().Str("pname: ", pname, ", pvalue:").Obj(pvalue).Str("target:").Obj(targetType[pname]).Emit()
 						if res, err := validate(schema, "additionalProperties", pvalue, targetType[pname], escape(pname)); err != nil {
 							errors = append(errors, err)
 						} else {
+							// log.V2.Debug().Str("pname: ", pname, ", res:").Obj(res).Emit()
 							sourceType[pname] = res
 						}
 					}
@@ -327,6 +325,15 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 					errors = append(errors, err)
 				}
 			}
+		}
+
+		// 不在必需字段中的其他字段需要merge到source中
+		// 此处赋值会导致一个问题：将target的引用赋值给了sourceType中，如果在后续处理中有对targetType中数据的修改，会影响sourceType的值
+		// 在对AdditionalProperties的校验中，就会对targetType中的值进行修改，导致sourceType的值也发生变化
+		// 为了避免additionalProperties等校验逻辑对merge后的source产生影响，因此将赋值放到最后，后续不会有对targetType的修改
+		for k, v := range targetType {
+			// log.V2.Debug().Str("key: ", k, ", value:").Obj(v).Emit()
+			sourceType[k] = v
 		}
 
 	case []any:
