@@ -249,9 +249,11 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 		}
 
 		if s.PropertyNames != nil {
-			for pname := range sourceType {
-				if _, err := validate(s.PropertyNames, "propertyNames", pname, targetType[pname], escape(pname)); err != nil {
+			for pname, pvalue := range sourceType {
+				if res, err := validate(s.PropertyNames, "propertyNames", pvalue, targetType[pname], escape(pname)); err != nil {
 					errors = append(errors, err)
+				} else {
+					sourceType[pname] = res
 				}
 			}
 		}
@@ -267,8 +269,10 @@ func (s *Schema) merge(scope []schemaRef, vscope int, spath string, source, targ
 			for pname, pvalue := range sourceType {
 				if pattern.MatchString(pname) {
 					delete(result.unevalProps, pname)
-					if _, err := validate(sch, "patternProperties/"+escape(pattern.String()), pvalue, targetType[pname], escape(pname)); err != nil {
+					if res, err := validate(sch, "patternProperties/"+escape(pattern.String()), pvalue, targetType[pname], escape(pname)); err != nil {
 						errors = append(errors, err)
+					} else {
+						sourceType[pname] = res
 					}
 				}
 			}
